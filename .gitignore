@@ -1,0 +1,27 @@
+# .gitignore
+
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Dotenv files
+.env
+
+# VS Code config
+.vscode/
+
+# Pytest and coverage
+*.log
+*.coverage
+htmlcov/
+.coverage.*
+
+# OS files
+.DS_Store
+Thumbs.db
