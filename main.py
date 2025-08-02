@@ -4,12 +4,19 @@ from typing import Dict, Any
 import os
 from fastapi import FastAPI, Header, Depends, HTTPException, Body
 from dotenv import load_dotenv
-
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://darthmidlo.com"],  # or ["https://darthmidlo.com"] to lock it down
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def verify_api_key(x_api_key: str = Header(...)):
     """Check for api key passed in headers"""
