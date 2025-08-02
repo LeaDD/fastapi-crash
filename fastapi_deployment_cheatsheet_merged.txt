@@ -1,0 +1,121 @@
+# 🚀 FastAPI Deployment Cheatsheet (Linode, Nginx, Gunicorn, systemd)
+
+## 🔑 SSH Setup
+```bash
+ssh-keygen -t rsa -b 4096                      # Generate key if needed
+ssh-copy-id leadd@<linode-ip>                 # Install public key to server
+ssh leadd@<linode-ip>                         # Connect without password
+```
+
+## 📁 Project Directory Layout
+```bash
+sudo mkdir -p /opt/services
+sudo chown leadd:leadd /opt/services
+cd /opt/services
+git clone https://github.com/your-username/fastapi-crash.git
+cd fastapi-crash
+```
+
+## 🐍 Python Virtual Environment Setup
+```bash
+sudo apt install python3-venv -y
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## 🔥 Manual Dev Test (Uvicorn only)
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+## 🌐 Nginx Setup
+```bash
+sudo apt install nginx
+sudo nano /etc/nginx/sites-available/fastapi-crash
+```
+
+Paste this config:
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Then:
+```bash
+sudo ln -s /etc/nginx/sites-available/fastapi-crash /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default         # Optional
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 🔧 Gunicorn Install & Test
+```bash
+source .venv/bin/activate
+pip install gunicorn uvicorn[standard]
+gunicorn main:app -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000
+```
+
+## ⚙️ systemd Service File
+
+Path: `/etc/systemd/system/fastapi-crash.service`
+
+```ini
+[Unit]
+Description=FastAPI Crash Service
+After=network.target
+
+[Service]
+User=leadd
+WorkingDirectory=/opt/services/fastapi-crash
+ExecStart=/opt/services/fastapi-crash/.venv/bin/gunicorn main:app -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable fastapi-crash
+sudo systemctl start fastapi-crash
+sudo systemctl status fastapi-crash
+```
+
+## 🔐 CORS Middleware (add in main.py)
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Or use your Flask site's domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+## ✅ Deployment Checklist
+- Code lives in `/opt/services/fastapi-crash`
+- `main.py` defines your app and routes
+- `requirements.txt` tracks dependencies
+- Nginx proxies requests to Gunicorn on 127.0.0.1:8000
+- Gunicorn runs FastAPI using uvicorn workers
+- systemd runs Gunicorn on boot and restarts on crash
+- `http://<your-linode-ip>/health` should return status
+- Flask sandbox can call the API with CORS enabled

@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://darthmidlo.com"],  # or ["https://darthmidlo.com"] to lock it down
+    allow_origins=["*"],  # or ["https://darthmidlo.com"] to lock it down
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
